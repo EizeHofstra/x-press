@@ -81,11 +81,44 @@ artistsRouter.get('/:artistId', (req, res, next) => {
 //updated artist on the artist property of the response body
 //If any required fields are missing, returns a 400 response
 //If an artist with the supplied artist ID doesn't exist, returns a 404 response.
+artistsRouter.put('/:artistId', (req, res, next) => {
+  const updatedArtist = req.body.artist;
+  if (!updatedArtist.name || !updatedArtist.dateOfBirth || !updatedArtist.biography) {
+    res.status(400).send();
+  }
+  db.run(`UPDATE Artist SET name = $name, date_of_birth = $date_of_birth, biography = $biography WHERE id = ${req.params.artistId}`, {
+    $name: updatedArtist.name,
+    $date_of_birth: updatedArtist.dateOfBirth,
+    $biography: updatedArtist.biography
+  },
+  function(err) {
+    if(err) {
+      res.status(400).send();
+    }
+    db.get(`SELECT * FROM Artist WHERE id = ${req.params.artistId}`,
+      (err, row) => {
+        res.status(200).send({artist: row});
+      });
+  });
+});
+
 
 //DELETE Updates the artist with the specified artist ID to be unemployed
 //(is_currently_employed equal to 0). Returns a 200 response.
 //If an artist with the supplied artist ID doesn't exist, returns a 404 response.
-
+artistsRouter.delete('/:artistId', (req, res, next) => {
+  db.run(`UPDATE Artist SET is_currently_employed = 0 WHERE id = ${req.params.artistId}`,
+    function (err) {
+      if (err) {
+        return res.status(404).send()
+      }
+      db.get(`SELECT * FROM Artist WHERE id = ${req.params.artistId}`,
+        (err, row) => {
+          res.status(200).send({artist: row});
+        }
+      )
+  })
+})
 
 
 module.exports = artistsRouter;

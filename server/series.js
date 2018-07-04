@@ -1,12 +1,39 @@
 const express = require('express');
 const seriesRouter = express.Router();
+const sqlite3 = require('sqlite3');
 
-module.exports = seriesRouter;
+const db = new sqlite3.Database(process.env.TEST_DATABASE || './database.sqlite');
 
+
+//Router param for seriesId
+seriesRouter.param('seriesId', (req, res, next, seriesId) => {
+  const sql = `SELECT * FROM Series WHERE Series.id = $seriesId`;
+  const values = {$seriesId: seriesId};
+  db.get(sql, values, (error, series) => {
+    if (error) {
+      next(error);
+    } else if (series) {
+      req.series = series;
+      next();
+    } else {
+      res.sendStatus(404);
+    }
+  });
+});
 
 //api/series
 //GET Returns a 200 response containing all saved series on the
 //series property of the response body.
+seriesRouter.get('/', (req, res, next) => {
+  db.all(`SELECT * FROM Series`, (err, rows) => {
+    if (err || !rows) {
+      return res.sendStatus(404);
+    }
+    res.send({series: rows});
+  });
+});
+
+
 
 //POST Creates a new series with the information from the series
 //property of the request body and saves it to the database.
@@ -63,3 +90,8 @@ module.exports = seriesRouter;
 //Returns a 204 response.
 //If a series with the supplied series ID doesn't exist, return 404 response.
 //If an issue with the supplied issue ID doesn't exist, return 404 response.
+
+
+
+
+module.exports = seriesRouter;
